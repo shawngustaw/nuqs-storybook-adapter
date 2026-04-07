@@ -7,6 +7,9 @@
 		"url": "https://github.com/shawngustaw/nuqs-storybook-adapter/issues"
 	},
 	"license": "MIT",
+	"engines": {
+		"bun": ">=1.3.6"
+	},
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/shawngustaw/nuqs-storybook-adapter.git"

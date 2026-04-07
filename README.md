@@ -64,6 +64,20 @@ Optional props match nuqs’s custom adapter provider (again, besides `children`
 </NuqsStorybookAdapter>
 ```
 
+## Development
+
+This library is built with [Bunup](https://bunup.dev/), which wraps [Bun’s bundler](https://bun.sh/docs/bundler) for TypeScript libraries (ESM output and `.d.ts` in `dist/`).
+
+After `bun install`, produce a release build with:
+
+```bash
+bun run build
+```
+
+Do **not** run plain `bun build` with no arguments: that is Bun’s CLI and expects explicit entrypoint files (see `bun build --help`). The npm script `build` runs `bunup` instead.
+
+Bunup currently requires **Bun 1.3.6 or newer**; upgrade with `bun upgrade` if `bun run build` reports a version error.
+
 ## Contributing
 
 Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for contribution guidelines.

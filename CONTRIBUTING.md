@@ -6,7 +6,7 @@ Thank you for your interest in contributing to our project! This guide will help
 
 ### Prerequisites
 
-- Bun installed on your system
+- [Bun](https://bun.sh/) **1.3.6 or newer** (required by [Bunup](https://bunup.dev/), the project’s build tool)
 
 ### Getting Started
 
@@ -22,7 +22,7 @@ Thank you for your interest in contributing to our project! This guide will help
 2. Make your changes
 3. Check code style and formatting: `bun run lint` and `bun run format`
 4. Run tests: `bun run test`
-5. Build the project: `bun run build`
+5. Build the project: `bun run build` (runs Bunup — not the same as `bun build`, which is Bun’s bundler CLI and needs explicit entrypoints)
 6. Commit your changes using the conventions below
 7. Push your branch to your fork
 8. Open a pull request
