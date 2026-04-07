@@ -17,13 +17,17 @@ import {
 
 function useNuqsStorybookAdapter() {
 	const nextSearchParams = useSearchParams();
+
 	const initialSearchParams = (
 		nextSearchParams ?? new URLSearchParams()
 	).toString();
+
 	const locationSearchRef = useRef(initialSearchParams);
+
 	const [searchParams, setSearchParams] = useState(
 		() => new URLSearchParams(locationSearchRef.current),
 	);
+
 	const updateUrl = useCallback(
 		(search: URLSearchParams, _options: AdapterOptions) => {
 			const queryString = renderQueryString(search);
@@ -32,9 +36,15 @@ function useNuqsStorybookAdapter() {
 		},
 		[],
 	);
+
+	const getSearchParamsSnapshot = useCallback(() => {
+		return new URLSearchParams(locationSearchRef.current);
+	}, []);
+
 	return {
 		searchParams,
 		updateUrl,
+		getSearchParamsSnapshot,
 	};
 }
 
