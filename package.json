@@ -1,6 +1,6 @@
 {
 	"name": "nuqs-storybook-adapter",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"description": "Nuqs v2 adapter compatible with @storybook/nextjs-vite mock router",
 	"homepage": "https://github.com/shawngustaw/nuqs-storybook-adapter#readme",
 	"bugs": {
