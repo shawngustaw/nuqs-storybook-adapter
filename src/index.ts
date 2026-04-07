@@ -2,12 +2,14 @@
 
 import { useSearchParams } from 'next/navigation';
 import {
+	createContext,
 	createElement,
 	useCallback,
+	useContext,
 	useRef,
-	useState,
-	type ComponentProps,
+	useSyncExternalStore,
 	type ReactElement,
+	type ReactNode,
 } from 'react';
 import {
 	type unstable_AdapterOptions as AdapterOptions,
@@ -15,32 +17,62 @@ import {
 	renderQueryString,
 } from 'nuqs/adapters/custom';
 
+type SearchParamsStore = {
+	subscribe: (listener: () => void) => () => void;
+	getSnapshot: () => URLSearchParams;
+	update: (search: URLSearchParams) => void;
+	getRef: () => string;
+};
+
+function createSearchParamsStore(initial: string): SearchParamsStore {
+	let currentRef = initial;
+	let current = new URLSearchParams(initial);
+	const listeners = new Set<() => void>();
+	return {
+		subscribe(listener) {
+			listeners.add(listener);
+			return () => listeners.delete(listener);
+		},
+		getSnapshot() {
+			return current;
+		},
+		update(search) {
+			const queryString = renderQueryString(search);
+			current = new URLSearchParams(search);
+			currentRef = queryString;
+			for (const listener of listeners) listener();
+		},
+		getRef() {
+			return currentRef;
+		},
+	};
+}
+
+// Shared store context so all consumers (via createAdapterProvider) read
+// from the same state that lives in the provider component.
+const StoreContext = createContext<SearchParamsStore | null>(null);
+
 function useNuqsStorybookAdapter() {
-	const nextSearchParams = useSearchParams();
-
-	const initialSearchParams = (
-		nextSearchParams ?? new URLSearchParams()
-	).toString();
-
-	const locationSearchRef = useRef(initialSearchParams);
-
-	const [searchParams, setSearchParams] = useState(
-		() => new URLSearchParams(locationSearchRef.current),
+	const store = useContext(StoreContext);
+	if (!store) {
+		throw new Error(
+			'[nuqs-storybook-adapter] useNuqsStorybookAdapter must be used within NuqsStorybookAdapter',
+		);
+	}
+	const searchParams = useSyncExternalStore(
+		store.subscribe,
+		store.getSnapshot,
+		store.getSnapshot,
 	);
-
 	const updateUrl = useCallback(
 		(search: URLSearchParams, _options: AdapterOptions) => {
-			const queryString = renderQueryString(search);
-			setSearchParams(new URLSearchParams(search));
-			locationSearchRef.current = queryString;
+			store.update(search);
 		},
-		[],
+		[store],
 	);
-
 	const getSearchParamsSnapshot = useCallback(() => {
-		return new URLSearchParams(locationSearchRef.current);
-	}, []);
-
+		return new URLSearchParams(store.getRef());
+	}, [store]);
 	return {
 		searchParams,
 		updateUrl,
@@ -48,12 +80,39 @@ function useNuqsStorybookAdapter() {
 	};
 }
 
-type NuqsAdapter = ReturnType<typeof createAdapterProvider>;
-type NuqsAdapterProps = ComponentProps<NuqsAdapter>;
+import type { unstable_AdapterContext as AdapterContext } from 'nuqs/adapters/custom';
 
-export const NuqsStorybookAdapter: NuqsAdapter = createAdapterProvider(
-	useNuqsStorybookAdapter,
-);
+const InnerProvider: ReturnType<typeof createAdapterProvider> =
+	createAdapterProvider(useNuqsStorybookAdapter);
+
+type NuqsStorybookAdapterProps = {
+	children: ReactNode;
+	defaultOptions?: AdapterContext['defaultOptions'];
+	processUrlSearchParams?: AdapterContext['processUrlSearchParams'];
+};
+
+export function NuqsStorybookAdapter({
+	children,
+	defaultOptions,
+	processUrlSearchParams,
+}: NuqsStorybookAdapterProps): ReactElement {
+	const nextSearchParams = useSearchParams();
+	const initialSearchParams = (
+		nextSearchParams ?? new URLSearchParams()
+	).toString();
+	const storeRef = useRef<SearchParamsStore | null>(null);
+	if (!storeRef.current) {
+		storeRef.current = createSearchParamsStore(initialSearchParams);
+	}
+	return createElement(
+		StoreContext.Provider,
+		{ value: storeRef.current },
+		createElement(
+			InnerProvider,
+			{ defaultOptions, processUrlSearchParams, children },
+		),
+	);
+}
 
 /**
  * A Storybook decorator that wraps stories with the NuqsStorybookAdapter.
@@ -71,14 +130,14 @@ export const NuqsStorybookAdapter: NuqsAdapter = createAdapterProvider(
  * ```
  */
 export function withNuqsStorybookAdapter(
-	props: Omit<NuqsAdapterProps, 'children'> = {},
+	props: Omit<NuqsStorybookAdapterProps, 'children'> = {},
 ) {
 	return function NuqsStorybookAdapterDecorator(
 		Story: React.ComponentType,
 	): ReactElement {
 		return createElement(
 			NuqsStorybookAdapter,
-			// @ts-expect-error - Ignore missing children error
+			// @ts-expect-error - children provided via createElement's third arg
 			props,
 			createElement(Story),
 		);
